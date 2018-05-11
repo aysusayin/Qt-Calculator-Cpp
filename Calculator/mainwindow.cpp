@@ -51,3 +51,32 @@ void MainWindow::operator_buttons()
 
 
 }
+
+double MainWindow::HexToDouble(string hex)
+{
+    reverse(hex.begin(),hex.end());
+    char hexa[hex.length()];
+    strcpy(hexa,hex.c_str());
+    double a = 0;
+
+    for(int i=0;i<hex.length();i++){
+        if(hexa[i]=='F')
+            a+=15 * pow(16,i) ;
+        else if(hexa[i]=='E')
+            a+=14 * pow(16,i) ;
+        else if(hexa[i]=='D')
+            a+=13 * pow(16,i) ;
+        else if(hexa[i]=='C')
+            a+=12 * pow(16,i) ;
+        else if(hexa[i]=='B')
+            a+=11 * pow(16,i) ;
+        else if(hexa[i]=='A')
+            a+=10 * pow(16,i) ;
+        else{
+            int temp = hex[i] -'0';
+            a+= temp * pow(16,i);
+        }
+
+    }
+    return a;
+}
