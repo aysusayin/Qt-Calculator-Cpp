@@ -80,3 +80,28 @@ double MainWindow::HexToDouble(string hex)
     }
     return a;
 }
+
+QString MainWindow::DoubleToHex(long a)
+{
+    QString hex = "";
+    while(a>0){
+        long temp = a%16;
+        if(temp==15)
+            hex = "F" +hex;
+        else if(temp==14)
+            hex = "E" +hex;
+        else if(temp==13)
+            hex = "D" +hex;
+        else if(temp==12)
+            hex = "C" +hex;
+        else if(temp==11)
+            hex = "B" +hex;
+        else if(temp==10)
+            hex = "A" +hex;
+        else{
+            hex = QString::number(temp) + hex;
+        }
+        a=a/16;
+    }
+    return hex;
+}
