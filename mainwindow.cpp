@@ -4,9 +4,8 @@
 #include <iostream>
 
 using namespace std;
-bool firstnum;
 //Constructor
-//Sets the initial conditions, connects buttons with actions
+//Sets the initial conditions, connects buttons with slots
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -36,17 +35,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->pushButton_Hex,SIGNAL(clicked(bool)),this,SLOT(control_buttons()));
     connect(ui->pushButton_Clr,SIGNAL(clicked(bool)),this,SLOT(control_buttons()));
     connect(ui->pushButton_Eql,SIGNAL(clicked(bool)),this,SLOT(operator_buttons()));
-    ui->pushButton_Div->setCheckable(true);
-    ui->pushButton_Min->setCheckable(true);
-    ui->pushButton_Plus->setCheckable(true);
-    ui->pushButton_Mult->setCheckable(true);
-    ui->pushButton_Plus->setChecked(false);
-    ui->pushButton_Mult->setChecked(false);
-    ui->pushButton_Div->setChecked(false);
-    ui->pushButton_Min->setChecked(false);
-
-    isDec=true;
-    stored_number = 0;
 }
 //Destructor
 MainWindow::~MainWindow()
@@ -68,20 +56,24 @@ void MainWindow::digit_buttons()
         //If previous value is invalid, clear the screen and display newly pressed button's digit
         if(ui->label->text() == "Invalid" ){
             number_displayed =pressed_button->text();
-            //If an operation button is pressed before, clear the screen and display newly pressed button's digit
-            //also set isTypingSecondNum to true to get second input
-        }else if((ui->pushButton_Div->isChecked() || ui->pushButton_Min->isChecked() || ui->pushButton_Mult->isChecked()
-                  || ui->pushButton_Plus->isChecked()) && !isTypingSecNum){
+        //if the last operand is "=" then clear the screen and display newly pressed button's digit
+        }else if(lastOperand=="="){
+            lastOperand="";
+            number_displayed =pressed_button->text();
+            ui->label_3->setText(lastOperand);
+        //If an operation button is pressed before, clear the screen and display newly pressed button's digit
+        //also set isTypingSecondNum to true to get second input
+        }else if(lastOperand!="" && !isTypingSecNum){
             isTypingSecNum=true;
             number_displayed=pressed_button->text();
-            //If previous value is 0, clear the screen and display newly pressed button's digit
+        //If previous value is 0, clear the screen and display newly pressed button's digit
         }else if(ui->label->text() == "0"){
             number_displayed =pressed_button->text();
-            //Else set add the newly pressed button's digit next to the previous number on the screen
+        //Else add the newly pressed button's digit next to the previous number on the screen
         }else{
             number_displayed =ui->label->text() + pressed_button->text();
         }
-        ui->label->setText(number_displayed);
+        ui->label->setText(number_displayed);//set the label
     }
 
 
@@ -91,27 +83,30 @@ void MainWindow::digit_buttons()
 void MainWindow::operator_buttons()
 {
     QPushButton * pressed_button = (QPushButton*) sender();//currently pressed button
-    //if calculator is not in the decimal mode, convert the number on the screen to decimal and call calculate
+
+    //If there is no number given before, store this number in stored_number
     if(!firstnum){
-        stored_number=ui->label->text().toInt();
-        firstnum=true;
-        pressed_button->setChecked(true);
+         if(isDec)
+             stored_number=ui->label->text().toInt();
+         else
+             stored_number=hexToDec(ui->label->text());//convert hexadecimal to decimal
+
+        firstnum=true; //first num is stored
+        //if an operation button is pressed make it last operand
+        if(pressed_button->text()=="+" ||pressed_button->text()=="*" || pressed_button->text()=="/" ||pressed_button->text()=="-") lastOperand=pressed_button->text();
+        //if "=" button is pressed clear
+        else clear();
+        ui->label_3->setText(lastOperand);
     }else{
+        //if calculator is not in the decimal mode, convert the number on the screen to decimal and call calculate
         if(!isDec){
             calculate(pressed_button->text(), hexToDec(ui->label->text()));
-            cout<<pressed_button->text().toStdString()<<endl;
-            //call calculate
+
+        //call calculate
         }else{
-            cout<<"pressed "<<pressed_button->text().toStdString()<<endl;
-            cout<<"num "<<QString::number( ui->label->text().toInt()).toStdString()<<endl;
-            cout<<"stored num "<<QString::number( stored_number).toStdString()<<endl;
             calculate(pressed_button->text(), ui->label->text().toInt());
-            cout<<"calculating... "<<QString::number( ui->label->text().toInt()).toStdString()<<endl;
-            cout<<"stored num "<<QString::number( stored_number).toStdString()<<endl;
         }
     }
-
-
 
 }
 //When hex, dec or clr button is pressed this method is called
@@ -119,112 +114,127 @@ void MainWindow::control_buttons()
 {
     QPushButton * pressed_button = (QPushButton*) sender();
 
-    //if hex button is pressed change mode to hex
+    //if hex button is pressed change mode to hex and clear
     if(pressed_button->text() == "Hex"){
         ui->label_2->setText("HEX");
         isDec=false;
-        //if hex button is pressed change mode to dec
+        clear();
+    //if hex button is pressed change mode to dec and clear
     }else if(pressed_button->text() == "Dec"){
         ui->label_2->setText("DEC");
         isDec=true;
-        //if clr button is pressed, call clear method
+        clear();
+    //if clr button is pressed, call clear method
     }else if(pressed_button->text() == "Clr"){
         clear();
     }
 
 }
 //this method does operations
+//operation: currently pressed buttons operation
+//secondNum: current num on the screen, right operand
 void MainWindow::calculate(QString operation, int secondNum){
-    cout<<"HERE ALL"<<endl;
 
     //if division button is pressed before, do division and store the output value in stored_number
-    if(ui->pushButton_Div->isChecked()){
+    if(lastOperand=="/" && isTypingSecNum){
         isTypingSecNum=false;
         stored_number = stored_number / secondNum;
-        ui->pushButton_Div->setChecked(false);
+        lastOperand="";
 
-        //if subtraction button is pressed before, do subtraction and store the output value in stored_number
-    }else if(ui->pushButton_Min->isChecked()){
+    //if subtraction button is pressed before, do subtraction and store the output value in stored_number
+    }else if(lastOperand=="-" && isTypingSecNum){
         isTypingSecNum=false;
         stored_number=  stored_number - secondNum;
-        ui->pushButton_Min->setChecked(false);
+       lastOperand="";
 
-        //if addition button is pressed before, do addition and store the output value in stored_number
-    }else if(ui->pushButton_Plus->isChecked()){
+    //if addition button is pressed before, do addition and store the output value in stored_number
+    }else if(lastOperand=="+" && isTypingSecNum){
         isTypingSecNum=false;
         stored_number=stored_number+secondNum;
-        cout<<"HERE "<<endl;
-        ui->pushButton_Plus->setChecked(false);
+        lastOperand="";
 
-        //if multiplication button is pressed before, do multiplication and store the output value in stored_number
-    }else if(ui->pushButton_Mult->isChecked()){
+    //if multiplication button is pressed before, do multiplication and store the output value in stored_number
+    }else if(lastOperand=="*" && isTypingSecNum){
         isTypingSecNum=false;
         stored_number= stored_number*secondNum;
-        ui->pushButton_Mult->setChecked(false);
+        lastOperand="";
     }
+    //Display the result in the label
     if(isDec)
         ui->label->setText(QString::number(stored_number));
     else
         ui->label->setText(decToHex(stored_number));
 
-    if(operation == "+"){
-        ui->pushButton_Plus->setChecked(true);
-    }else if(operation == "-"){
-        ui->pushButton_Min->setChecked(true);
-    }else if(operation == "*"){
-        ui->pushButton_Mult->setChecked(true);
-    }else if(operation == "/"){
-        ui->pushButton_Div->setChecked(true);
-    }else if(operation == "="){
+    //If the operation is "=", reset the variables
+    if(operation == "="){
+        lastOperand="=";
         stored_number=0;
         firstnum=false;
         isTypingSecNum=false;
+    //last operation is currently presssed button's operation
+    }else{
+        lastOperand=operation;
     }
+    ui->label_3->setText(lastOperand);
 
 }
 //this method changes the calculator to its initial settings
 void MainWindow::clear(){
+    lastOperand="";
     stored_number=0;
     isTypingSecNum=false;
     firstnum=false;
-    ui->pushButton_Plus->setChecked(false);
-    ui->pushButton_Mult->setChecked(false);
-    ui->pushButton_Div->setChecked(false);
-    ui->pushButton_Min->setChecked(false);
     ui->label->setText("0");
+    ui->label_3->setText(lastOperand);
 
 }
 //This method converts hexadecimal number to decimal
-int MainWindow::hexToDec(QString hex)
-{
-    int a = 0;
+//hex: hexadecimal value to be converted
+int MainWindow::hexToDec(QString hex){
+    int dec = 0;
 
-    for(int i=hex.length()-1;i>=0;i--){
+    bool negate=false; // checks if hex is negative
+    int lastInd=0;
+    //if hex is negative
+    if(hex.at(0) == '-'){
+        negate=true;
+        lastInd=1;
+    }
+    for(int i=hex.length()-1;i>=lastInd;i--){
         if(hex.at(i)=='F')
-            a+=15 * pow(16,i) ;
+            dec+=15 * pow(16,hex.length()-i-1) ;
         else if(hex.at(i)=='E')
-            a+=14 * pow(16,i) ;
+            dec+=14 * pow(16,hex.length()-i-1) ;
         else if(hex.at(i)=='D')
-            a+=13 * pow(16,i) ;
+            dec+=13 * pow(16,hex.length()-i-1) ;
         else if(hex.at(i)=='C')
-            a+=12 * pow(16,i) ;
+            dec+=12 * pow(16,hex.length()-i-1) ;
         else if(hex.at(i)=='B')
-            a+=11 * pow(16,i) ;
+            dec+=11 * pow(16,hex.length()-i-1) ;
         else if(hex.at(i)=='A')
-            a+=10 * pow(16,i) ;
+            dec+=10 * pow(16,hex.length()-i-1) ;
         else{
-            int temp = hex[i].digitValue();
-            a+= temp * pow(16,i);
+            int temp = hex.at(i).digitValue();
+            dec+= temp * pow(16,hex.length()-i-1);
         }
 
     }
-    return a;
-}
+    if(negate) return dec*-1;
 
-QString MainWindow::decToHex(int a){
+    return dec;
+}
+//This method converts decimal number to hexadecimal
+//dec: decimal value to be converted
+QString MainWindow::decToHex(int dec){
+    if(dec==0) return "0";
+    bool negate=false; //checks if dec is negative
+    if(dec<0){
+        negate = true;
+        dec=dec*-1;
+    }
     QString hex = "";
-    while(a>0){
-        int temp = a%16;
+    while(dec>0){
+        int temp = dec%16;
         if(temp==15)
             hex = "F" +hex;
         else if(temp==14)
@@ -240,7 +250,8 @@ QString MainWindow::decToHex(int a){
         else{
             hex = QString::number(temp) + hex;
         }
-        a=a/16;
+        dec=dec/16;
     }
+    if(negate) return "-"+hex;
     return hex;
 }

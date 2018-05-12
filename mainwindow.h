@@ -20,6 +20,8 @@ private:
     int stored_number = 0; //the number that is stored
     bool isDec=true; //calculators mode decimal when its true, hexadecimal otherwise
     bool isTypingSecNum=false; //if program is getting a new number after a operation button is pressed true otherwise false
+    bool firstnum=false; //true if a first number is entered false otherwise
+    QString lastOperand=""; //stores the last operand
     QString hex = "ABCDEF"; //Characters in Hex Numbers
     void calculate(QString operation, int secondNum); //does calculations
     void clear(); //clears the calculator
